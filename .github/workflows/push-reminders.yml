@@ -1,0 +1,63 @@
+name: Push reminders
+
+# Sends the breakfast and dinner push notifications to Meds.
+#
+# OFF until you turn it on: this does nothing on a schedule unless the repo variable
+# PUSH_ENABLED is set to true (Settings -> Secrets and variables -> Actions -> Variables).
+# Set it only after the push setup in README.md is done, or every run will fail.
+#
+# Times: MORNING_TIME and EVENING_TIME below are in TIME_ZONE (a name from the tz database,
+# like America/Chicago or Europe/London). Cron is UTC, and most zones shift an hour for
+# daylight saving, so each reminder has two cron lines an hour apart.
+# The cron lines below are for New York (UTC-4 summer, UTC-5 winter). Elsewhere, redo them.
+# scripts/send-push.mjs sends from whichever run lands near the target and skips the other.
+# The lines fire 5 minutes early because GitHub usually starts scheduled runs a bit late.
+#
+# To change a time, change BOTH the env value and its two cron lines:
+#   cron hour = target hour minus your UTC offset, once for summer and once for winter,
+#   minute = target minute - 5. New York (-4/-5): 08:00 -> '55 11' and '55 12'.
+#   Chicago (-5/-6): 08:00 -> '55 12' and '55 13'.  Los Angeles (-7/-8): '55 14' and '55 15'.
+#   No daylight saving where you are? Use one line per reminder.
+#
+# Scheduled runs only happen on the repo's default branch, and GitHub pauses them after
+# 60 days with no commits to the repo. If reminders stop, check the Actions tab.
+
+on:
+  schedule:
+    - cron: '55 11 * * *'   # morning, summer (EDT)
+    - cron: '55 12 * * *'   # morning, winter (EST)
+    - cron: '55 21 * * *'   # evening, summer (EDT)
+    - cron: '55 22 * * *'   # evening, winter (EST)
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'Send this reminder right now (test)'
+        required: true
+        type: choice
+        options: [morning, evening]
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    if: vars.PUSH_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: scripts
+      - run: node scripts/send-push.mjs
+        env:
+          TIME_ZONE: 'America/New_York'
+          MORNING_TIME: '08:00'
+          EVENING_TIME: '18:00'
+          FORCE_SLOT: ${{ inputs.slot }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}

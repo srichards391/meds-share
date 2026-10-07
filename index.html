@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Meds</title>
+  <meta name="description" content="A simple daily medication log: what to take with breakfast and dinner, and whether you already did.">
+  <meta name="theme-color" content="#1D7398">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Meds">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css?v=2.1">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="screen-title">Today</h1>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </header>
+
+  <main id="screen" class="screen"></main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <a href="#today" data-tab="today"><span class="tab-icon">☀️</span>Today</a>
+    <a href="#meds" data-tab="meds"><span class="tab-icon">💊</span>Meds</a>
+    <a href="#history" data-tab="history"><span class="tab-icon">📅</span>History</a>
+    <a href="#settings" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</a>
+  </nav>
+
+  <!-- Add / edit medication -->
+  <dialog id="med-dialog">
+    <form method="dialog" id="med-form" class="form">
+      <h2 id="med-dialog-title">Add medication</h2>
+      <input type="hidden" name="id">
+      <label>Name
+        <input name="name" type="text" required autocomplete="off" placeholder="e.g. Lisinopril">
+      </label>
+      <fieldset>
+        <legend>Type</legend>
+        <label class="check"><input type="radio" name="kind" value="scheduled"> Scheduled, with meals</label>
+        <label class="check"><input type="radio" name="kind" value="prn"> As needed (PRN): log it when you take it</label>
+      </fieldset>
+      <div id="sched-block">
+        <fieldset>
+          <legend>When</legend>
+          <label class="check"><input type="checkbox" name="morning"> Morning, with breakfast</label>
+          <label class="check"><input type="checkbox" name="evening"> Evening, with dinner</label>
+        </fieldset>
+      </div>
+      <!-- One dose box in the usual case. The options below split it by meal, by weekday, or both. -->
+      <div id="dose-grid" class="dose-grid"></div>
+      <div id="dose-options" class="dose-options">
+        <label class="check" id="opt-slot"><input type="checkbox" name="bySlot"> Different dose at breakfast and dinner</label>
+        <label class="check"><input type="checkbox" name="byDay"> Different dose on different days of the week</label>
+      </div>
+      <div class="dose-summary" id="dose-summary" aria-live="polite"></div>
+      <label id="from-block">Dose or schedule changes start on
+        <input name="from" type="date">
+        <small>Earlier days keep the schedule they had. Doses already logged never change.</small>
+      </label>
+      <label>Notes
+        <textarea name="notes" rows="2" placeholder="Prescriber, pharmacy, why you take it..."></textarea>
+      </label>
+      <label class="check"><input type="checkbox" name="active" checked> Active (shows on Today)</label>
+      <div class="sched-history" id="sched-history"></div>
+      <div class="form-actions">
+        <button type="button" class="btn danger" id="med-delete" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="med-cancel">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Log an as-needed dose -->
+  <dialog id="prn-dialog">
+    <form method="dialog" id="prn-form" class="form">
+      <h2 id="prn-title">Log dose</h2>
+      <p class="dialog-sub" id="prn-day"></p>
+      <label>Time taken
+        <input name="time" type="time">
+      </label>
+      <label>Dose
+        <input name="dose" type="text" autocomplete="off">
+      </label>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="prn-cancel">Cancel</button>
+        <button type="submit" class="btn primary">Log</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ?v= makes each release a new address, so no cache can hand back an older copy.
+       Bump with APP_VERSION in app.js (tests/dosing.test.js checks they match). -->
+  <script src="./config.js?v=2.1"></script>
+  <script src="./sync-core.js?v=2.1"></script>
+  <script src="./app.js?v=2.1"></script>
+</body>
+</html>
